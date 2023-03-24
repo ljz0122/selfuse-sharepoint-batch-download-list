@@ -38,11 +38,13 @@ SHAREPOINT_ROOT = None
 SESSION = requests.Session()
 
 def main():
-    global COOKIE_FEDAUTH, SHAREPOINT_ROOT, SESSION, DLPATH_PRIFIX
+    global COOKIE_FEDAUTH, SHAREPOINT_ROOT, SESSION, DLPATH_PRIFIX, FILENAME_LENGTH_LIMIT
     SHAREPOINT_ROOT = input("SharePoint Real Path (eg. https://xxxx-my.sharepoint.com/personal/aaaa_t_cccc_cn/Documents/):\n")
     SHAREPOINT_PATH = urlparse(SHAREPOINT_ROOT).path
 
     COOKIE_FEDAUTH = input("FedAuth cookie (base64 value only):\n")
+    
+    FILENAME_LENGTH_LIMIT = int(input("Custom Filename Length Limit:\n") or "25565")
     cookies={
         'FedAuth': COOKIE_FEDAUTH
     }
@@ -76,7 +78,14 @@ def main():
         save_path = DLPATH_PRIFIX + "/".join(url_info.path.lstrip(SHAREPOINT_PATH).split('/')[:-1])
         save_path = unquote(save_path)
         encoded_url = url_info.geturl()
-        fw.write(f'{encoded_url}\n  dir={save_path}\n\n')
+        ori_filename=encoded_url.split('/')[-1].replace('%20', ' ')
+        if len(ori_filename) < FILENAME_LENGTH_LIMIT:
+            filename=ori_filename.split('.')[0]
+        else:
+            filename=ori_filename.split(' ')[0]
+        extension=ori_filename.split('.')[-1]
+        print(f'filename={filename}.{extension}')
+        fw.write(f'{encoded_url}\n  dir={save_path}\n  out={filename}.{extension}\n\n')
     
     print(f'\nSucess!\nAria2 input file was saved to {ARIA2_INPUT_FILE}. Please run following command to start download:\n\naria2c --header="Cookie:FedAuth={COOKIE_FEDAUTH}" --input-file={ARIA2_INPUT_FILE} --max-concurrent-downloads=2 --max-connection-per-server=5 --save-session=session.txt --save-session-interval=30\n')
 
